@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rating Curve Plotter</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.1.1"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+    header { background-color: blue; color: white; padding: 10px; text-align: center; font-size: 24px; }
+    .container { display: flex; flex: 1; overflow: hidden; }
+    .left, .middle, .right { padding: 10px; overflow-y: auto; }
+    .left { width: 15%; background: #f0f0f0; }
+    .middle { width: 25%; background: #e0e0e0; }
+    .right { flex: 1; background: #ffffff; }
+    .collapsible { background-color: #ccc; cursor: pointer; padding: 10px; width: 100%; border: none; text-align: left; outline: none; font-size: 15px; }
+    .content { padding: 0 10px; display: none; overflow: hidden; background-color: #f1f1f1; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #999; padding: 4px; text-align: right; }
+
+    .content {
+      display: none;
+      overflow: hidden;
+      background-color: #f1f1f1;
+      padding: 3px 6px;
+      border-radius: 6px;
+      margin-bottom: 3px;
+    }
+
+    .form-group {
+      display: flex;
+      align-items: center;
+      margin-bottom: 2px;
+      gap: 4px;
+    }
+
+    .form-group label {
+      flex: 1;
+      text-align: right;
+      font-weight: bold;
+    }
+
+    .form-group input {
+      flex: 1;
+      max-width: 150px;
+      padding: 2px;
+    }
+
+    .dataTable{
+      padding:10px;
+      margin: 10px;
+    }
+
+    .inputContainer{
+      border: 2px solid black;
+      padding:5px;
+    }
+  </style>
+</head>
+<body>
+<header>Rating Curve Plotter</header>
+<div class="container">
+  <div class="left">
+    <div class="inputContainer">
+      <input type="file" id="csvFileInput" accept=".csv" />
+    </div>
+    <table id="dataTable" class="dataTable"></table>
+  </div>
+  <div class="middle">
+    <div id="collapsibles"></div>
+    <button onclick="updateFits()">Calculate Fits</button>
+  </div>
+  <div class="right">
+    <canvas id="chart"></canvas>
+    <div id="equations"></div>
+    <button onclick="downloadChart()">Download Graph as Image</button>
+    <button onclick="downloadCSV(SDarray, 'SDarray.csv')">Download SDarray</button>
+    <button onclick="downloadFitCSV(fit1, 'fit1.csv')">Download fit1</button>
+    <button onclick="downloadFitCSV(fit2, 'fit2.csv')">Download fit2</button>
+    <button onclick="downloadFitCSV(fit3, 'fit3.csv')">Download fit3</button>
+    <button onclick="downloadFitCSV(fit4, 'fit4.csv')">Download fit4</button>
+
+    <div id="multiFitInputs">
+      <h3>Plot Multiple Fits</h3>
+      <div class="fit-input-group">
+        <label><input type="checkbox" class="fit-checkbox" value="1"> Fit 1</label>
+        Min: <input type="number" class="fit-min" data-fit="1">
+        Max: <input type="number" class="fit-max" data-fit="1">
+      </div>
+      <div class="fit-input-group">
+        <label><input type="checkbox" class="fit-checkbox" value="2"> Fit 2</label>
+        Min: <input type="number" class="fit-min" data-fit="2">
+        Max: <input type="number" class="fit-max" data-fit="2">
+      </div>
+      <div class="fit-input-group">
+        <label><input type="checkbox" class="fit-checkbox" value="3"> Fit 3</label>
+        Min: <input type="number" class="fit-min" data-fit="3">
+        Max: <input type="number" class="fit-max" data-fit="3">
+      </div>
+      <div class="fit-input-group">
+        <label><input type="checkbox" class="fit-checkbox" value="4"> Fit 4</label>
+        Min: <input type="number" class="fit-min" data-fit="4">
+        Max: <input type="number" class="fit-max" data-fit="4">
+      </div>
+      <button onclick="plotMultipleFits()">Plot Selected Fits</button>
+    </div>
+    
+    <canvas id="secondChart" width="600" height="400"></canvas>
+    
+  </div>
+</div>
+<script>
+let SDarray = [];
+let chart;
+let fit1 = [], fit2 = [], fit3 = [], fit4 = [];
+
+function createCollapsibles() {
+  const stages = 4;
+  let html = '';
+  for (let i = 1; i <= stages; i++) {
+    html += `<button class="collapsible">Stage ${i}</button>
+      <div class="content">
+        <div class="form-group"><label for="Stage${i}Mini">Stage${i}Mini:</label><input type="number" id="Stage${i}Mini"></div>
+        <div class="form-group"><label for="Stage${i}Max">Stage${i}Max:</label><input type="number" id="Stage${i}Max"></div>
+        <div class="form-group"><label for="Dis${i}Mini">Dis${i}Mini:</label><input type="number" id="Dis${i}Mini"></div>
+        <div class="form-group"><label for="Dis${i}Max">Dis${i}Max:</label><input type="number" id="Dis${i}Max"></div>
+        <div class="form-group"><label for="FitStge${i}mini">FitStage${i}mini:</label><input type="number" id="FitStge${i}mini"></div>
+        <div class="form-group"><label for="FStage${i}max">FStge${i}max:</label><input type="number" id="FStage${i}max"></div>
+      </div>`;
+  }
+  document.getElementById('collapsibles').innerHTML = html;
+
+  document.querySelectorAll('.collapsible').forEach(btn => {
+    btn.addEventListener('click', function () {
+      this.classList.toggle('active');
+      let content = this.nextElementSibling;
+      content.style.display = content.style.display === 'block' ? 'none' : 'block';
+    });
+  });
+}
+
+
+createCollapsibles();
+
+document.getElementById('csvFileInput').addEventListener('change', function (e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const lines = e.target.result.split('\n');
+    SDarray = lines.slice(1).filter(Boolean).map(line => {
+      const [stage, discharge] = line.split(',').map(Number);
+      return { stage, discharge };
+    });
+    drawTable();
+    drawChart();
+    const stages = SDarray.map(d => d.stage);
+    const discharges = SDarray.map(d => d.discharge);
+    const Smin = Math.min(...stages);
+    const Smax = Math.max(...stages);
+    const Dmin = Math.min(...discharges);
+    const Dmax = Math.max(...discharges);
+    document.getElementById('Stage1Mini').value = Smin;
+    document.getElementById('Stage1Max').value = Smax;
+    document.getElementById('Dis1Mini').value = Dmin;
+    document.getElementById('Dis1Max').value = Dmax;
+  };
+  reader.readAsText(file);
+});
+
+function drawTable() {
+  const table = document.getElementById('dataTable');
+  table.innerHTML = '<tr><th>Stage</th><th>Discharge</th></tr>' +
+    SDarray.map(d => `<tr><td>${d.stage}</td><td>${d.discharge}</td></tr>`).join('');
+}
+
+function drawChart() {
+  const ctx = document.getElementById('chart').getContext('2d');
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: 'SD Curve',
+        data: SDarray.map(d => ({ x: d.discharge, y: d.stage })),
+        backgroundColor: 'red',
+        showLine: false
+      }]
+    },
+    options: {
+      onClick: (e) => {
+        const points = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+        if (points.length) {
+          const index = points[0].index;
+          SDarray.splice(index, 1);
+          drawTable();
+          drawChart();
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Discharge' } },
+        y: { title: { display: true, text: 'Stage' } }
+      }
+    }
+  });
+}
+
+function bestFitPower(data) {
+  const n = data.length;
+  const sumXY = data.reduce((sum, d) => {
+    const lx = Math.log(d.stage), ly = Math.log(d.discharge);
+    return sum + lx * ly;
+  }, 0);
+  const sumX = data.reduce((sum, d) => sum + Math.log(d.stage), 0);
+  const sumY = data.reduce((sum, d) => sum + Math.log(d.discharge), 0);
+  const sumX2 = data.reduce((sum, d) => sum + Math.log(d.stage) ** 2, 0);
+  const b = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX ** 2);
+  const a = Math.exp((sumY - b * sumX) / n);
+  return { a, b };
+}
+
+const fitCoefficients = {}; // global object to store coefficients
+
+function updateFits() {
+  [fit1, fit2, fit3, fit4] = [[], [], [], []];
+  chart.data.datasets = chart.data.datasets.slice(0, 1);
+  const eqs = [];
+  for (let i = 1; i <= 4; i++) {
+    const smin = parseFloat(document.getElementById(`Stage${i}Mini`).value);
+    const smax = parseFloat(document.getElementById(`Stage${i}Max`).value);
+    const filter = SDarray.filter(d => d.stage >= smin && d.stage <= smax);
+    if (filter.length > 1) {
+      const { a, b } = bestFitPower(filter);
+      fitCoefficients[i] = { a, b }; // store coefficients
+
+      const fit = [];
+      for (let s = smin; s <= smax; s += (smax - smin) / 50) {
+        fit.push({ x: a * Math.pow(s, b), y: s });
+      }
+
+      chart.data.datasets.push({
+        label: `Fit ${i}`,
+        data: fit,
+        type: 'line',
+        borderColor: ['blue', 'green', 'orange', 'purple'][i - 1],
+        fill: false
+      });
+
+      window[`fit${i}`] = fit;
+      eqs.push(`Fit ${i}: Discharge = ${a.toFixed(2)} * Stage^${b.toFixed(2)}`);
+    }
+  }
+
+  chart.update();
+  document.getElementById('equations').innerHTML = eqs
+    .map(eq => `<div class="equation">${eq}</div>`)
+    .join('');
+}
+
+
+function plotMultipleFits() {
+  const selectedFits = Array.from(document.querySelectorAll('.fit-checkbox:checked'));
+  if (selectedFits.length === 0) {
+    alert('Please select at least one fit.');
+    return;
+  }
+
+  const datasets = [];
+  let globalMinDischarge = Infinity, globalMaxDischarge = -Infinity;
+  let globalMinStage = Infinity, globalMaxStage = -Infinity;
+
+  selectedFits.forEach(cb => {
+    const fitIndex = parseInt(cb.value);
+    const coeffs = fitCoefficients[fitIndex];
+    if (!coeffs) return;
+
+    const min = parseFloat(document.querySelector(`.fit-min[data-fit="${fitIndex}"]`).value);
+    const max = parseFloat(document.querySelector(`.fit-max[data-fit="${fitIndex}"]`).value);
+    if (isNaN(min) || isNaN(max)) return;
+
+    const { a, b } = coeffs;
+    const data = [];
+
+    for (let s = min; s <= max; s += (max - min) / 50) {
+      const discharge = a * Math.pow(s, b);
+      data.push({ x: discharge, y: s });
+      globalMinDischarge = Math.min(globalMinDischarge, discharge);
+      globalMaxDischarge = Math.max(globalMaxDischarge, discharge);
+    }
+
+    globalMinStage = Math.min(globalMinStage, min);
+    globalMaxStage = Math.max(globalMaxStage, max);
+
+    datasets.push({
+      label: `Fit ${fitIndex}`,
+      data,
+      borderColor: ['red', 'blue', 'green', 'orange'][fitIndex - 1],
+      fill: false
+    });
+  });
+
+  const ctx = document.getElementById('secondChart').getContext('2d');
+  if (window.secondChartInstance) {
+    window.secondChartInstance.destroy();
+  }
+
+  window.secondChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true,
+      scales: {
+        x: {
+          type: 'linear',
+          title: { display: true, text: 'Discharge' },
+          min: Math.floor(globalMinDischarge * 0.9),
+          max: Math.ceil(globalMaxDischarge * 1.1),
+          ticks: {
+            stepSize: (globalMaxDischarge - globalMinDischarge) / 5,
+            autoSkip: false
+          }
+        },
+        y: {
+          title: { display: true, text: 'Stage' },
+          min: globalMinStage,
+          max: globalMaxStage
+        }
+      }
+    }
+  });
+}
+
+
+
+
+function downloadCSV(data, filename) {
+  const csv = ['stage,discharge'];
+  data.forEach(d => csv.push(`${d.stage},${d.discharge}`));
+  const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+}
+
+function downloadFitCSV(data, filename) {
+  if (!data.length) return;
+  const csv = ['discharge,stage'];
+  data.forEach(d => csv.push(`${d.x},${d.y}`));
+  const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+}
+
+function downloadChart() {
+  const canvas = chart.canvas;
+  const ctx = canvas.getContext('2d');
+
+  // Create a temporary white background
+  const w = canvas.width;
+  const h = canvas.height;
+
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = w;
+  tempCanvas.height = h;
+  const tempCtx = tempCanvas.getContext('2d');
+
+  // Fill white background
+  tempCtx.fillStyle = '#fff';
+  tempCtx.fillRect(0, 0, w, h);
+
+  // Draw the chart on top
+  tempCtx.drawImage(canvas, 0, 0);
+
+  // Export image from temp canvas
+  const a = document.createElement('a');
+  a.href = tempCanvas.toDataURL('image/png', 1.0);
+  a.download = 'chart.png';
+  a.click();
+}
+
+
+
+
+</script>
+</body>
+</html>
