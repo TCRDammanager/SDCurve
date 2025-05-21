@@ -1,22 +1,105 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Rating Curve Plotter</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.1.1"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-    header { background-color: blue; color: white; padding: 10px; text-align: center; font-size: 24px; }
-    .container { display: flex; flex: 1; overflow: hidden; }
-    .left, .middle, .right { padding: 10px; overflow-y: auto; }
-    .left { width: 15%; background: #f0f0f0; }
-    .middle { width: 25%; background: #e0e0e0; }
-    .right { flex: 1; background: #ffffff; }
-    .collapsible { background-color: #ccc; cursor: pointer; padding: 10px; width: 100%; border: none; text-align: left; outline: none; font-size: 15px; }
-    .content { padding: 0 10px; display: none; overflow: hidden; background-color: #f1f1f1; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #999; padding: 4px; text-align: right; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    header {
+      background-color: blue;
+      color: white;
+      padding: 10px;
+      text-align: center;
+      font-size: 24px;
+    }
+
+    .container {
+      display: flex;
+      height: 85vh;
+    }
+
+    .left-column {
+      height: 90%;
+      width: 15%;
+      background-color: #f0f0f0;
+      padding: 1rem;
+      box-sizing: border-box;
+      overflow-y: auto; 
+    }
+
+    .right-column {
+      height: 90%;
+      width: 85%;
+      padding: 1rem;
+      box-sizing: border-box;
+      overflow-y: auto; 
+    }
+
+    .tabs {
+      display: flex;
+      margin-bottom: 1rem;
+    }
+
+    .tab {
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      background-color: #ddd;
+      margin-right: 0.5rem;
+      border-radius: 4px 4px 0 0;
+    }
+
+    .tab.active {
+      background-color: #fff;
+      font-weight: bold;
+    }
+
+    .tab-content {
+      display: none;
+      border: 1px solid #ddd;
+      border-top: none;
+      padding: 1rem;
+      background-color: #fff;
+      display: none;
+    }
+
+    .tab-content.active {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .box {
+      background-color: #eaeaea;
+      padding: 1rem;
+      border-radius: 4px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+      box-sizing: border-box;
+    }
+
+    .wide-box {
+      width: 70%;
+    }
+
+    .narrow-box {
+      width: 30%;
+    }
+
+    .collapsible {
+      background-color: #ccc;
+      cursor: pointer;
+      padding: 10px;
+      width: 100%;
+      border: none;
+      text-align: left;
+      outline: none;
+      font-size: 15px;
+    }
 
     .content {
       display: none;
@@ -46,70 +129,133 @@
       padding: 2px;
     }
 
-    .dataTable{
-      padding:10px;
+    .dataTable {
+      padding: 10px;
       margin: 10px;
     }
 
-    .inputContainer{
+    .inputContainer {
       border: 2px solid black;
-      padding:5px;
+      padding: 5px;
+    }
+
+    footer {
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      padding: 10px;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
 <header>Rating Curve Plotter</header>
 <div class="container">
-  <div class="left">
+  <div class="left-column">
+    <h3>Select Data File</h3>
     <div class="inputContainer">
       <input type="file" id="csvFileInput" accept=".csv" />
     </div>
     <table id="dataTable" class="dataTable"></table>
   </div>
-  <div class="middle">
-    <div id="collapsibles"></div>
-    <button onclick="updateFits()">Calculate Fits</button>
-  </div>
-  <div class="right">
-    <canvas id="chart"></canvas>
-    <div id="equations"></div>
-    <button onclick="downloadChart()">Download Graph as Image</button>
-    <button onclick="downloadCSV(SDarray, 'SDarray.csv')">Download SDarray</button>
-    <button onclick="downloadFitCSV(fit1, 'fit1.csv')">Download fit1</button>
-    <button onclick="downloadFitCSV(fit2, 'fit2.csv')">Download fit2</button>
-    <button onclick="downloadFitCSV(fit3, 'fit3.csv')">Download fit3</button>
-    <button onclick="downloadFitCSV(fit4, 'fit4.csv')">Download fit4</button>
-
-    <div id="multiFitInputs">
-      <h3>Plot Multiple Fits</h3>
-      <div class="fit-input-group">
-        <label><input type="checkbox" class="fit-checkbox" value="1"> Fit 1</label>
-        Min: <input type="number" class="fit-min" data-fit="1">
-        Max: <input type="number" class="fit-max" data-fit="1">
-      </div>
-      <div class="fit-input-group">
-        <label><input type="checkbox" class="fit-checkbox" value="2"> Fit 2</label>
-        Min: <input type="number" class="fit-min" data-fit="2">
-        Max: <input type="number" class="fit-max" data-fit="2">
-      </div>
-      <div class="fit-input-group">
-        <label><input type="checkbox" class="fit-checkbox" value="3"> Fit 3</label>
-        Min: <input type="number" class="fit-min" data-fit="3">
-        Max: <input type="number" class="fit-max" data-fit="3">
-      </div>
-      <div class="fit-input-group">
-        <label><input type="checkbox" class="fit-checkbox" value="4"> Fit 4</label>
-        Min: <input type="number" class="fit-min" data-fit="4">
-        Max: <input type="number" class="fit-max" data-fit="4">
-      </div>
-      <button onclick="plotMultipleFits()">Plot Selected Fits</button>
+  <div class="right-column">
+    <div class="tabs">
+      <div class="tab active" onclick="showTab(0)">Curve Fitting</div>
+      <div class="tab" onclick="showTab(1)">Plotting</div>
     </div>
-    
-    <canvas id="secondChart" width="600" height="400"></canvas>
-    
+
+    <div class="tab-content active">
+      <div class="box wide-box">
+        <p>Box 1A (70%)</p>
+        <canvas id="chart"></canvas>
+        <div id="equations"></div>
+        <button onclick="downloadChart()">Download Graph as Image</button>
+        <button onclick="downloadCSV(SDarray, 'SDarray.csv')">Download SDarray</button>
+        <button onclick="downloadFitCSV(fit1, 'fit1.csv')">Download fit1</button>
+        <button onclick="downloadFitCSV(fit2, 'fit2.csv')">Download fit2</button>
+        <button onclick="downloadFitCSV(fit3, 'fit3.csv')">Download fit3</button>
+        <button onclick="downloadFitCSV(fit4, 'fit4.csv')">Download fit4</button>
+      </div>
+      <div class="box narrow-box">
+        <p>Set Fitting Stage Limits</p>
+        <div id="collapsibles"></div>
+        <button onclick="updateFits()">Calculate Fits</button>
+      </div>
+    </div>
+
+    <div class="tab-content">
+      <div class="box wide-box">
+        <p>Box 2A (70%)</p>
+        <canvas id="secondChart"></canvas>
+      </div>
+      <div class="box narrow-box">
+        <p>Set Plotting Stage Limits</p>
+        <div id="multiFitInputs">
+          <h3>Plot Multiple Fits</h3>
+          <div class="fit-input-group">
+            <label><input type="checkbox" class="fit-checkbox" value="1"> Fit 1</label>
+            Min: <input type="number" class="fit-min" data-fit="1">
+            Max: <input type="number" class="fit-max" data-fit="1">
+          </div>
+          <div class="fit-input-group">
+            <label><input type="checkbox" class="fit-checkbox" value="2"> Fit 2</label>
+            Min: <input type="number" class="fit-min" data-fit="2">
+            Max: <input type="number" class="fit-max" data-fit="2">
+          </div>
+          <div class="fit-input-group">
+            <label><input type="checkbox" class="fit-checkbox" value="3"> Fit 3</label>
+            Min: <input type="number" class="fit-min" data-fit="3">
+            Max: <input type="number" class="fit-max" data-fit="3">
+          </div>
+          <div class="fit-input-group">
+            <label><input type="checkbox" class="fit-checkbox" value="4"> Fit 4</label>
+            Min: <input type="number" class="fit-min" data-fit="4">
+            Max: <input type="number" class="fit-max" data-fit="4">
+          </div>
+          <button onclick="plotMultipleFits()">Plot Selected Fits</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
+<footer>&copy; 2025 Rating Curve Plotter. All rights reserved.</footer>
+
 <script>
+function showTab(index) {
+  const tabs = document.querySelectorAll(".tab");
+  const contents = document.querySelectorAll(".tab-content");
+  tabs.forEach((tab, i) => {
+    tab.classList.toggle("active", i === index);
+    contents[i].classList.toggle("active", i === index);
+  });
+
+  // ADDITION: update secondChart with SDarray points when Tab 2 is shown
+  if (index === 1) {
+    if (window.secondChartInstance) {
+      window.secondChartInstance.data.datasets = window.secondChartInstance.data.datasets.filter(d => d.label !== 'SD Data');
+      window.secondChartInstance.data.datasets.push({
+        label: 'SD Data',
+        data: SDarray.map(d => ({ x: d.discharge, y: d.stage })),
+        backgroundColor: 'black',
+        showLine: false,
+        type: 'scatter'
+      });
+      window.secondChartInstance.update();
+    }
+  }
+}
+</script>
+
+<!-- Keep your original script block below this line for functionality -->
+
+
+<!-- Keep your original script block below this line for functionality -->
+<!-- You can paste your existing JavaScript logic here (not repeated for brevity) -->
+ <script>
+
+
+
+
 let SDarray = [];
 let chart;
 let fit1 = [], fit2 = [], fit3 = [], fit4 = [];
@@ -124,8 +270,6 @@ function createCollapsibles() {
         <div class="form-group"><label for="Stage${i}Max">Stage${i}Max:</label><input type="number" id="Stage${i}Max"></div>
         <div class="form-group"><label for="Dis${i}Mini">Dis${i}Mini:</label><input type="number" id="Dis${i}Mini"></div>
         <div class="form-group"><label for="Dis${i}Max">Dis${i}Max:</label><input type="number" id="Dis${i}Max"></div>
-        <div class="form-group"><label for="FitStge${i}mini">FitStage${i}mini:</label><input type="number" id="FitStge${i}mini"></div>
-        <div class="form-group"><label for="FStage${i}max">FStge${i}max:</label><input type="number" id="FStage${i}max"></div>
       </div>`;
   }
   document.getElementById('collapsibles').innerHTML = html;
@@ -387,5 +531,6 @@ function downloadChart() {
 
 
 </script>
+
 </body>
 </html>
