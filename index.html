@@ -5,12 +5,18 @@
   <title>Rating Curve Plotter</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.1.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  
+
   <style>
     body {
       margin: 0;
       font-family: Arial, sans-serif;
     }
+
 
     header {
       background-color: blue;
@@ -26,7 +32,7 @@
     }
 
     .left-column {
-      height: 90%;
+      height: 100%;
       width: 15%;
       background-color: #f0f0f0;
       padding: 1rem;
@@ -35,7 +41,7 @@
     }
 
     .right-column {
-      height: 90%;
+      height: 100%;
       width: 85%;
       padding: 1rem;
       box-sizing: border-box;
@@ -64,7 +70,7 @@
       display: none;
       border: 1px solid #ddd;
       border-top: none;
-      padding: 1rem;
+      padding: 5;
       background-color: #fff;
       display: none;
     }
@@ -76,7 +82,7 @@
 
     .box {
       background-color: #eaeaea;
-      padding: 1rem;
+      padding: 5;
       border-radius: 4px;
       box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
       box-sizing: border-box;
@@ -146,9 +152,60 @@
       padding: 10px;
       font-size: 14px;
     }
+
+
+.fit-input-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.fit-input-group label {
+  white-space: nowrap;
+  margin-right: 4px;
+}
+
+
+.small-input {
+  width: 20px !important;
+  padding: 2px 4px;
+  font-size: 12px;
+}
+
+.fit-input-group input[type="number"] {
+  width: 90px;
+}
+
+
+.fit-input-group input[type=number]::-webkit-outer-spin-button,
+.fit-input-group input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.fit-input-group input[type=number] {
+  -moz-appearance: textfield; /* Firefox */
+}
+
+
+#table2Container button {
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-weight: bold;
+}
+#table2Container table {
+  font-size: 14px;
+}
+
+
   </style>
 </head>
 <body>
+
+
 <header>Rating Curve Plotter</header>
 <div class="container">
   <div class="left-column">
@@ -166,27 +223,37 @@
 
     <div class="tab-content active">
       <div class="box wide-box">
-        <p>Box 1A (70%)</p>
+       <p id="stationLabel"></p>
+        <div style="display: flex; gap: 40px; align-items: center; font-size: 14px;">
+  		<p id="recordCount">Total Records: 0</p>
+  		<p id="SMaxi">Stage Max: 0</p>
+                <p id="SMini">Stage Min: 0</p>
+  		<p id="DMaxi">Dis Max: 0</p>
+                <p id="DMini">Dis Min: 0</p>
+	</div>
         <canvas id="chart"></canvas>
         <div id="equations"></div>
-        <button onclick="downloadChart()">Download Graph as Image</button>
-        <button onclick="downloadCSV(SDarray, 'SDarray.csv')">Download SDarray</button>
-        <button onclick="downloadFitCSV(fit1, 'fit1.csv')">Download fit1</button>
-        <button onclick="downloadFitCSV(fit2, 'fit2.csv')">Download fit2</button>
-        <button onclick="downloadFitCSV(fit3, 'fit3.csv')">Download fit3</button>
-        <button onclick="downloadFitCSV(fit4, 'fit4.csv')">Download fit4</button>
+       <button onclick="downloadChart()">Download Chart as Image</button>
+
       </div>
       <div class="box narrow-box">
         <p>Set Fitting Stage Limits</p>
         <div id="collapsibles"></div>
         <button onclick="updateFits()">Calculate Fits</button>
+        <button onclick="downloadCSV(SDarray, 'SDarray.csv')">Download Modified SD Data</button>
+
       </div>
     </div>
 
     <div class="tab-content">
       <div class="box wide-box">
-        <p>Box 2A (70%)</p>
+        <p id="stationLabel1"></p>
         <canvas id="secondChart"></canvas>
+         <button onclick="AddNewPoint()">Add New Point</button>
+         <button onclick="Zoomplus()">Zoom +</button>
+         <button onclick="Zoomminus()">Zoom - </button>
+        <button onclick="resetZoom()">Reset Zoom</button>
+        <button onclick="downloadChart1()">Download Graph as Image</button>
       </div>
       <div class="box narrow-box">
         <p>Set Plotting Stage Limits</p>
@@ -213,14 +280,46 @@
             Max: <input type="number" class="fit-max" data-fit="4">
           </div>
           <button onclick="plotMultipleFits()">Plot Selected Fits</button>
+          <button onclick="Completetheplotline()">Complete the Plot</button>
+          <button onclick="MultipletaskPrinting()">Download Plotted Data Table</button>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+
 <footer>&copy; 2025 Rating Curve Plotter. All rights reserved.</footer>
 
+
+
+<div id="table2Container" style="position: fixed; bottom: 20px; right: 20px; max-height: 200px; overflow-y: auto; background: #fff; border: 1px solid #ccc; padding: 10px; display: none; z-index: 999;">
+  <table id="table2" border="1" cellpadding="5" cellspacing="0">
+    <thead>
+      <tr>
+        <th>Stage</th>
+        <th>Discharge</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+</div>
+
+
 <script>
+var PlotGlobalmaxS = 0;    
+var PlotGlobalmaxD = 0;  
+var PlotGlobalminS = 0; 
+var PlotGlobalminD = 0;     
+var chart2scalex = 1;
+var chart2scaley = 1;
+var Addpointflag = 0;
+var stationname = "";
+var Filenamer = "";
+var MSLT = 0;
+var MSLchk = 0;
 function showTab(index) {
   const tabs = document.querySelectorAll(".tab");
   const contents = document.querySelectorAll(".tab-content");
@@ -238,7 +337,21 @@ function showTab(index) {
         data: SDarray.map(d => ({ x: d.discharge, y: d.stage })),
         backgroundColor: 'black',
         showLine: false,
-        type: 'scatter'
+        type: 'scatter',
+        order: 2 ,
+        pointRadius: 3,
+
+ plugins: {
+    legend: {
+      labels: {
+        boxWidth: 4,     // Default is 40, reduce width
+        boxHeight: 4,     // 👈 Reduce height to make it like a line
+        padding: 10,  
+    }
+  }
+},
+
+
       });
       window.secondChartInstance.update();
     }
@@ -246,11 +359,6 @@ function showTab(index) {
 }
 </script>
 
-<!-- Keep your original script block below this line for functionality -->
-
-
-<!-- Keep your original script block below this line for functionality -->
-<!-- You can paste your existing JavaScript logic here (not repeated for brevity) -->
  <script>
 
 
@@ -268,8 +376,6 @@ function createCollapsibles() {
       <div class="content">
         <div class="form-group"><label for="Stage${i}Mini">Stage${i}Mini:</label><input type="number" id="Stage${i}Mini"></div>
         <div class="form-group"><label for="Stage${i}Max">Stage${i}Max:</label><input type="number" id="Stage${i}Max"></div>
-        <div class="form-group"><label for="Dis${i}Mini">Dis${i}Mini:</label><input type="number" id="Dis${i}Mini"></div>
-        <div class="form-group"><label for="Dis${i}Max">Dis${i}Max:</label><input type="number" id="Dis${i}Max"></div>
       </div>`;
   }
   document.getElementById('collapsibles').innerHTML = html;
@@ -286,28 +392,56 @@ function createCollapsibles() {
 
 createCollapsibles();
 
+
 document.getElementById('csvFileInput').addEventListener('change', function (e) {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = function (e) {
     const lines = e.target.result.split('\n');
-    SDarray = lines.slice(1).filter(Boolean).map(line => {
+
+const headerTitle = lines[0].split(',')[0]; // Column1 Row1
+stationname = headerTitle;
+
+
+
+SDarray  = [];
+clearolddata();
+
+const line2 = lines[0]; // Line 2 (index 1)
+const words = line2.trim().split(','); // Split by comma
+const MSL = (!words[2] || words[2].trim() === '1') ? words[3] : words[3];
+const MSLH = (!words[2] || words[2].trim() === '1') ? " Stage in MSL " : " Stage in Gauge Reading. Zero MSL = ";
+MSLchk = (!words[2] || words[2].trim() === '1') ? 0 : 1;
+stationname = headerTitle + MSLH + words[3];
+Filenamer = (!words[2] ||  words[0] + "_" + words[1]);
+//stationname = headerTitle + MSLH + words[2];
+//alert(stationname);
+MSLT = MSL
+document.getElementById("stationLabel").textContent = stationname;
+document.getElementById("stationLabel1").textContent = stationname;
+
+document.getElementById('chart').setAttribute('data-title', headerTitle);
+document.getElementById('secondChart').setAttribute('data-title', headerTitle)
+
+
+
+    SDarray = lines.slice(2).filter(Boolean).map(line => {
       const [stage, discharge] = line.split(',').map(Number);
-      return { stage, discharge };
-    });
+  return {
+    stage: parseFloat(stage.toFixed(3)),
+    discharge: parseFloat(discharge.toFixed(3))
+  };
+});
     drawTable();
     drawChart();
     const stages = SDarray.map(d => d.stage);
     const discharges = SDarray.map(d => d.discharge);
     const Smin = Math.min(...stages);
     const Smax = Math.max(...stages);
-    const Dmin = Math.min(...discharges);
-    const Dmax = Math.max(...discharges);
     document.getElementById('Stage1Mini').value = Smin;
     document.getElementById('Stage1Max').value = Smax;
-    document.getElementById('Dis1Mini').value = Dmin;
-    document.getElementById('Dis1Max').value = Dmax;
+
   };
   reader.readAsText(file);
 });
@@ -325,14 +459,16 @@ function drawChart() {
     type: 'scatter',
     data: {
       datasets: [{
-        label: 'SD Curve',
+        label: 'SD Points',
         data: SDarray.map(d => ({ x: d.discharge, y: d.stage })),
         backgroundColor: 'red',
-        showLine: false
+        showLine: false,
+        order: 1 
       }]
     },
+
     options: {
-      onClick: (e) => {
+     onClick: (e) => {
         const points = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
         if (points.length) {
           const index = points[0].index;
@@ -345,8 +481,20 @@ function drawChart() {
         x: { title: { display: true, text: 'Discharge' } },
         y: { title: { display: true, text: 'Stage' } }
       }
+
+
     }
   });
+
+
+  const stages = SDarray.map(d => d.stage);
+  const discharges = SDarray.map(d => d.discharge);
+  document.getElementById('recordCount').textContent = `Total Records: ${SDarray.length}`;
+  document.getElementById('SMini').textContent = `Stage Min: ` + Math.min(...stages);
+  document.getElementById('SMaxi').textContent = `Stage Max: ` + Math.max(...stages);
+  document.getElementById('DMini').textContent = `Disrg Min: ` + Math.min(...discharges);
+  document.getElementById('DMaxi').textContent = `Disrg Max: ` + Math.max(...discharges);
+
 }
 
 function bestFitPower(data) {
@@ -387,11 +535,12 @@ function updateFits() {
         data: fit,
         type: 'line',
         borderColor: ['blue', 'green', 'orange', 'purple'][i - 1],
-        fill: false
+        fill: false,
+        pointRadius: 0
       });
 
       window[`fit${i}`] = fit;
-      eqs.push(`Fit ${i}: Discharge = ${a.toFixed(2)} * Stage^${b.toFixed(2)}`);
+      eqs.push(`Fit ${i}: Discharge = ${a.toFixed(10)} * Stage^${b.toFixed(10)}`);
     }
   }
 
@@ -402,14 +551,57 @@ function updateFits() {
 }
 
 
+
 function plotMultipleFits() {
   const selectedFits = Array.from(document.querySelectorAll('.fit-checkbox:checked'));
   if (selectedFits.length === 0) {
     alert('Please select at least one fit.');
+secondChart= new Chart(ctx, {
+  type: 'line', // or 'bar', etc.
+  data: newData,
+
+  // zoom ztarts
+ options: {
+      responsive: true,
+      plugins: {
+        zoom: {
+          zoom: {
+            enabled: true,
+            mode: 'xy',
+            speed: 0.1
+          },
+          pan: {
+            enabled: true,
+            mode: 'xy'
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'X Axis'
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'Y Axis'
+          }
+        }
+      }
+    }
+// zoom ends
+
+  });
     return;
+    
   }
 
   const datasets = [];
+  const plotArray = [];
+  const plotfilledArray = [];
+
   let globalMinDischarge = Infinity, globalMaxDischarge = -Infinity;
   let globalMinStage = Infinity, globalMaxStage = -Infinity;
 
@@ -425,33 +617,84 @@ function plotMultipleFits() {
     const { a, b } = coeffs;
     const data = [];
 
-    for (let s = min; s <= max; s += (max - min) / 50) {
+    for (let s = min; s <= max; s = Math.round((s + 0.01) * 100) / 100) {
       const discharge = a * Math.pow(s, b);
       data.push({ x: discharge, y: s });
+
+      plotArray.push({
+        Fitno: fitIndex,
+        Stage: s,
+        Discharge: discharge
+      });
       globalMinDischarge = Math.min(globalMinDischarge, discharge);
       globalMaxDischarge = Math.max(globalMaxDischarge, discharge);
+      PlotGlobalmaxD = globalMaxDischarge
+      PlotGlobalminD = globalMinDischarge
     }
 
     globalMinStage = Math.min(globalMinStage, min);
     globalMaxStage = Math.max(globalMaxStage, max);
+    PlotGlobalmaxS = globalMaxStage
+    PlotGlobalminS = globalMinStage
 
     datasets.push({
       label: `Fit ${fitIndex}`,
       data,
       borderColor: ['red', 'blue', 'green', 'orange'][fitIndex - 1],
-      fill: false
+      fill: false,
+      pointRadius: 0
     });
   });
+
+
+
+  // Reading yable2 tp plotarray starts
+const table2 = document.getElementById('table2');
+if (table2) {
+  for (let i = 1; i < table2.rows.length; i++) {
+    const row = table2.rows[i];
+      // Read and parse cell values
+    const fitno = 9
+    const stage = parseFloat(row.cells[0].innerText.trim());
+    const discharge = parseFloat(row.cells[1].innerText.trim());
+    // Skip rows with invalid data
+    if (!isNaN(fitno) && !isNaN(stage) && !isNaN(discharge)) {
+      plotArray.push({
+        Fitno: fitno,
+        Stage: stage,
+        Discharge: discharge,
+        isNew: true
+      });
+    }
+  }
+  // Refresh visuals
+} else {
+  console.warn('table2 does not exist.');
+}
+// Reading table2 tp plotarray end
+
+
 
   const ctx = document.getElementById('secondChart').getContext('2d');
   if (window.secondChartInstance) {
     window.secondChartInstance.destroy();
   }
-
   window.secondChartInstance = new Chart(ctx, {
     type: 'line',
     data: { datasets },
     options: {
+
+  plugins: {
+    legend: {
+      labels: {
+        boxWidth: 20,     // Default is 40, reduce width
+        boxHeight: 1,     // 👈 Reduce height to make it like a line
+        padding: 10,  
+    }
+  }
+},
+
+
       responsive: true,
       scales: {
         x: {
@@ -472,12 +715,61 @@ function plotMultipleFits() {
       }
     }
   });
+
+document.getElementById('secondChart').onclick = function (event) {
+    if (Addpointflag === 1) {
+  const chart = window.secondChartInstance;
+  const points = Chart.helpers.getRelativePosition(event, chart);
+
+  const x = chart.scales.x.getValueForPixel(points.x);
+  const y = chart.scales.y.getValueForPixel(points.y);
+
+  if (!isFinite(x) || !isFinite(y)) return;
+
+  // Optional: Ask user to confirm or edit
+  const confirmAdd = confirm(`Add point?\nStage: ${y.toFixed(2)}\nDischarge: ${x.toFixed(2)}`);
+  if (confirmAdd) {
+const newStage = parseFloat(y.toFixed(2));
+const newDischarge = parseFloat(x.toFixed(2));
+
+// Let pontarray = {};
+
+SDarray.push({ stage: newStage, discharge: newDischarge, isNew: true });
+plotArray.push({
+  Fitno: 9,
+  Stage: newStage,
+  Discharge: newDischarge,
+  isNew: true
+});
+
+plottingnewpoints();
+
+drawTable();
+drawChart();
+drawTable2();
+// Extend interpolated line
+extendCombinedFitLine(newDischarge, newStage);
+  }
+}};
+plottingnewpoints();
+
+  scaleChart2ToSDarray(1,1);
+  ClearAddNewPoint();
+   // scaleChart2ToSDandDataArray();
+  console.log('Plot Array:', plotArray);
+  window.plotArray = plotArray;
+
+
+    // Output
+    document.getElementById("output").textContent = interpolated
+      .map(({ x, y }) => `x: ${x.toFixed(2)}, y: ${y !== null ? y.toFixed(2) : 'null'}`)
+      .join('\n');
+
+//  alert(JSON.stringify(plotArray, null, 2)); // Optional, careful for large data!//
 }
 
-
-
-
-function downloadCSV(data, filename) {
+  function downloadCSV(data, filename) {
+   ClearAddNewPoint();
   const csv = ['stage,discharge'];
   data.forEach(d => csv.push(`${d.stage},${d.discharge}`));
   const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
@@ -488,7 +780,9 @@ function downloadCSV(data, filename) {
   a.click();
 }
 
+
 function downloadFitCSV(data, filename) {
+    ClearAddNewPoint();
   if (!data.length) return;
   const csv = ['discharge,stage'];
   data.forEach(d => csv.push(`${d.x},${d.y}`));
@@ -500,7 +794,12 @@ function downloadFitCSV(data, filename) {
   a.click();
 }
 
+
+
+
+
 function downloadChart() {
+    ClearAddNewPoint();
   const canvas = chart.canvas;
   const ctx = canvas.getContext('2d');
 
@@ -510,15 +809,22 @@ function downloadChart() {
 
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = w;
-  tempCanvas.height = h;
+  tempCanvas.height = h+50;
   const tempCtx = tempCanvas.getContext('2d');
 
   // Fill white background
   tempCtx.fillStyle = '#fff';
-  tempCtx.fillRect(0, 0, w, h);
+  tempCtx.fillRect(0, 0, w, h+50);
+
 
   // Draw the chart on top
-  tempCtx.drawImage(canvas, 0, 0);
+  tempCtx.drawImage(canvas, 0, 40);
+
+  tempCtx.fillStyle = '#000';
+  tempCtx.font = '20px Arial';
+  tempCtx.textAlign = 'center';
+  tempCtx.fillText(stationname, w / 2, 30);  // Draw title at top center
+
 
   // Export image from temp canvas
   const a = document.createElement('a');
@@ -529,6 +835,542 @@ function downloadChart() {
 
 
 
+function downloadChart1() {
+    ClearAddNewPoint();
+  const canvas = secondChart.canvas;
+  const ctx = canvas.getContext('2d');
+
+  // Create a temporary white background
+  const w = canvas.width;
+  const h = canvas.height;
+
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = w;
+  tempCanvas.height = h+50;
+  const tempCtx = tempCanvas.getContext('2d');
+
+  // Fill white background
+  tempCtx.fillStyle = '#fff';
+  tempCtx.fillRect(0, 0, w, h+50);
+
+  // Draw the chart on top
+  tempCtx.drawImage(canvas, 0, 40);
+
+  tempCtx.fillStyle = '#000';
+  tempCtx.font = '20px Arial';
+  tempCtx.textAlign = 'center';
+  tempCtx.fillText(stationname, w / 2, 30);  // Draw title at top center
+
+  // Export image from temp canvas
+  const a = document.createElement('a');
+  a.href = tempCanvas.toDataURL('image/png', 1.0);
+  a.download = 'chart.png';
+  a.click();
+}
+
+function downloadChart1() {
+    ClearAddNewPoint();
+  if (!window.secondChartInstance) {
+    return;
+  }
+
+  const canvas = window.secondChartInstance.canvas;
+  const w = canvas.width;
+  const h = canvas.height;
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = w;
+  tempCanvas.height = h+50;
+  const tempCtx = tempCanvas.getContext('2d');
+
+  // Add white background
+  tempCtx.fillStyle = '#fff';
+  tempCtx.fillRect(0, 0, w, h+50);
+
+  // Draw the chart on top
+
+  // Draw the chart on top
+  tempCtx.drawImage(canvas, 0, 40);
+
+  tempCtx.fillStyle = '#000';
+  tempCtx.font = '20px Arial';
+  tempCtx.textAlign = 'center';
+  tempCtx.fillText(stationname, w / 2, 30);  // Draw title at top center
+
+  // Create download link
+  const a = document.createElement('a');
+  a.href = tempCanvas.toDataURL('image/png', 1.0);
+  a.download = 'secondChart.png';
+  a.click();
+}
+
+
+
+function MultipletaskPrinting() {
+ ClearAddNewPoint();
+const interpolatedData = Fillpoltgaps2(plotArray);
+DownloadPlotdata(interpolatedData);
+}
+
+function Completetheplotline() {
+const interpolatedData = Fillpoltgaps2(plotArray);
+PlotInterpolatedSeries(interpolatedData);
+}
+
+
+function downloadplotCSV(data, filename) {
+ const csv = ['Fitno,Stage,Discharge']; // Header row with correct casing
+  data.forEach(d => {
+    csv.push(`${d.Fitno},${d.Stage},${d.Discharge}`);
+  });
+
+  const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+
+  document.body.appendChild(a);  // Required for Firefox
+  a.click();
+  document.body.removeChild(a);  // Cleanup
+}
+
+
+function Fillpoltgaps(plotArray) {
+    ClearAddNewPoint();
+ // Ensure plotArray is sorted by Stage
+  plotArray.sort((a, b) => a[1] - b[1]);
+  const stages = plotArray.map(row => row[1]);
+  const minStage = Math.min(...stages);
+  const maxStage = Math.max(...stages);
+  const step = 0.01;
+
+  // Generate complete stage series
+  const stageSeries = [];
+  for (let s = minStage; s <= maxStage + 1e-8; s += step) {
+    stageSeries.push(parseFloat(s.toFixed(2)));
+  }
+
+  // Interpolation function
+  function interpolate(stage) {
+    ClearAddNewPoint();
+    for (let i = 0; i < plotArray.length - 1; i++) {
+      const [f1, s1, d1] = plotArray[i];
+      const [f2, s2, d2] = plotArray[i + 1];
+
+      if (stage === s1) return [f1, s1, d1];
+      if (stage === s2) return [f2, s2, d2];
+
+      if (stage > s1 && stage < s2) {
+        const t = (stage - s1) / (s2 - s1);
+        const discharge = d1 + t * (d2 - d1);
+        return [0, stage, discharge];
+      }
+    }
+    return null; // out of range
+  }
+
+  // Generate filled array
+  const plotfilledArray = stageSeries.map(stage => {
+    const exact = plotArray.find(row => row[1] === stage);
+    if (exact) return exact;
+    return interpolate(stage);
+  }).filter(row => row !== null);
+
+  return plotfilledArray;
+}
+
+// Example: call this function after plotArray is defined
+const plotfilledArray = generateFilledArray(plotArray);
+console.log("plotfilledArray:", plotfilledArray);
+
+
+
+function Fillpoltgaps2(plotArray) {
+    ClearAddNewPoint();
+  if (!plotArray || !Array.isArray(plotArray)) {
+    alert("plotArray is invalid.");
+    return [];
+  }
+
+  const arr = plotArray.map(d => [d.Fitno, d.Stage, d.Discharge]);
+  arr.sort((a, b) => a[1] - b[1]);
+
+  const stageVals = arr.map(r => r[1]);
+  const minS = Math.min(...stageVals);
+  const maxS = Math.max(...stageVals);
+  const step = 0.01;
+  const eps = 1e-6;
+
+  const series = [];
+  for (let s = minS; s <= maxS + eps; s += step) {
+    series.push(parseFloat(s.toFixed(2)));
+  }
+
+  function interp(s) {
+  
+    for (let i = 0; i < arr.length - 1; i++) {
+      const [f1, s1, d1] = arr[i];
+      const [f2, s2, d2] = arr[i + 1];
+      if (s > s1 && s < s2) {
+        const t = (s - s1) / (s2 - s1);
+        const discharge = d1 + t * (d2 - d1);
+        return [0, s, discharge, 0];
+      }
+    }
+    return null;
+  }
+
+  const result = series.map(s => {
+    const exact = arr.find(r => Math.abs(r[1] - s) < eps);
+    return exact ? [...exact, 1] : interp(s);
+  }).filter(x => x);
+
+  return result;
+}
+
+
+function DownloadPlotdata(dataArray) {
+    ClearAddNewPoint();
+  if (!Array.isArray(dataArray) || dataArray.length === 0) {
+    alert("No data to download.");
+    return;
+  }
+
+if (MSLchk === 1) {
+  const csv = ['fitNumber,stage,MSL,discharge'];
+  dataArray.forEach(([fit, stage, discharge, interpolated]) => {
+  const msl = Number(stage) + Number(MSLT);
+    csv.push(`${fit},${stage},${msl.toFixed(3)},${discharge.toFixed(3)}`);
+  });
+
+  const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = Filenamer + '.csv';
+  a.click();
+} else {
+  const csv = ['fitNumber,Gauge Reading,stage in msl,discharge'];
+  dataArray.forEach(([fit, stage, discharge, interpolated]) => {
+    const GaugeR = Number(stage) - Number(MSLT);
+    csv.push(`${fit},${GaugeR.toFixed(3)},${stage},${discharge.toFixed(3)}`);
+  });
+
+  const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = Filenamer + '.csv';
+  a.click();
+}
+}
+
+function CSVone(dataArray){
+
+  const csv = ['fitNumber,stage,MSL,discharge'];
+  dataArray.forEach(([fit, stage, discharge, interpolated]) => {
+  const msl = Number(stage) + Number(MSLT);
+    csv.push(`${fit},${stage},${msl.toFixed(3)},${discharge.toFixed(3)}`);
+  });
+
+  const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = Filenamer + '.csv';
+  a.click();
+}
+function CSVTWO(dataArray){
+  const csv = ['fitNumber,stage,msl,discharge'];
+  dataArray.forEach(([fit, stage, discharge, interpolated]) => {
+  const msl = Number(stage) + Number(MSLT);
+    csv.push(`${fit},${stage},${msl.toFixed(3)},${discharge.toFixed(3)}`);
+  });
+  const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = Filenamer + '.csv';
+  a.click();
+}
+
+
+function PlotInterpolatedSeries(dataArray) {
+    ClearAddNewPoint();
+ if (!Array.isArray(dataArray) || dataArray.length === 0) {
+    console.warn("No interpolated data to plot.");
+    return;
+  }
+
+  const interpolatedData = dataArray.map(([fit, stage, discharge]) => ({
+    x: discharge,
+    y: stage
+  }));
+
+  if (window.secondChartInstance) {
+    const chart = window.secondChartInstance;
+
+    // Remove existing 'Combined Fit (Interpolated)' dataset if it exists
+    chart.data.datasets = chart.data.datasets.filter(
+      ds => ds.label !== 'Combined Fit (Interpolated)'
+    );
+
+    // Add new interpolated dataset
+    chart.data.datasets.push({
+      label: 'Combined Fit (Interpolated)',
+      data: interpolatedData,
+      borderColor: 'gray',
+      borderDash: [5, 5],
+      pointRadius: 0,
+      fill: false
+    });
+
+    chart.update();
+  }
+}
+
+function clearolddata()
+{
+
+}
+function scaleChart2ToSDarray(a,b) {
+    
+  if (!window.secondChartInstance || !Array.isArray(SDarray) || SDarray.length === 0) {
+    alert("Chart or SDarray is not ready.");
+    return;
+  }
+
+  const chart = window.secondChartInstance;
+
+  const discharges = SDarray.map(d => d.discharge);
+  const stages = SDarray.map(d => d.stage);
+
+  const minX = Math.min(...discharges);
+  const maxX = (Math.max(...discharges));
+  const minY = Math.min(...stages);
+  const maxY = (Math.max(...stages));
+
+  const stagemax = Math.max(PlotGlobalmaxS, maxY);
+  const stagemin = Math.min(PlotGlobalminS, minY);
+  const Dismin = Math.min(PlotGlobalminD, minX);
+  const Dismax = Math.max(PlotGlobalmaxD, maxX);
+
+  // Add a small margin (10%)
+  const marginX = (Dismax - Dismin) * 0.1 || 1;
+  const marginY = (stagemax - stagemin ) * 0.1 || 1;
+
+  chart.options.scales.x.min = (Dismin);
+  chart.options.scales.x.max = (Dismax + marginX)*a;
+  chart.options.scales.y.min = (stagemin);
+  chart.options.scales.y.max = (stagemax + marginY)*b;
+
+  chart.update();
+ }
+
+function extendCombinedFitLine(newX, newY) {
+ClearAddNewPoint();
+  if (!window.secondChartInstance) return;
+
+  const chart = window.secondChartInstance;
+  const combinedFit = chart.data.datasets.find(ds => ds.label === 'Combined Fit (Interpolated)');
+  if (!combinedFit) return;
+
+  const data = combinedFit.data;
+  if (data.length < 2) {
+    console.warn("Not enough data to extend fit.");
+    return;
+  }
+
+  // Get last two points to determine slope
+  const lastPoint = data[data.length - 1];
+  const secondLastPoint = data[data.length - 2];
+
+  const dx = lastPoint.x - secondLastPoint.x;
+  const dy = lastPoint.y - secondLastPoint.y;
+
+  if (dx === 0 && dy === 0) return;
+
+  // Calculate unit vector direction
+  const magnitude = Math.sqrt(dx * dx + dy * dy);
+  const ux = dx / magnitude;
+  const uy = dy / magnitude;
+
+  // Extend line until it reaches the new point directionally
+  const ex = lastPoint.x + ux * 10;  // Extend by 10 units
+  const ey = lastPoint.y + uy * 10;
+
+  // Line from lastPoint to (ex, ey) and check how far it goes toward (newX, newY)
+  const extendedPoint = { x: newX, y: newY };
+
+  // Add extended point to interpolated line visually
+  data.push(extendedPoint);
+
+  chart.update();
+
+  console.log("Extended line reaches point:", extendedPoint);
+  alert(`Extended line updated to include:\nStage: ${extendedPoint.y.toFixed(2)}\nDischarge: ${extendedPoint.x.toFixed(2)}`);
+}
+function drawTable2() {
+  const tableContainer = document.getElementById('table2Container');
+  const tbody = document.querySelector('#table2 tbody');
+  tbody.innerHTML = ''; // clear existing rows
+
+  // Filter new points only
+  const newPoints = SDarray.filter(p => p.isNew);
+
+  if (newPoints.length === 0) {
+    tableContainer.style.display = 'none';
+    return;
+  }
+
+  newPoints.forEach((point, index) => {
+    const row = document.createElement('tr');
+
+    const stageCell = document.createElement('td');
+    stageCell.textContent = point.stage;
+    row.appendChild(stageCell);
+
+    const dischargeCell = document.createElement('td');
+    dischargeCell.textContent = point.discharge;
+    row.appendChild(dischargeCell);
+
+    const actionCell = document.createElement('td');
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.style.color = 'red';
+    deleteBtn.onclick = function () {
+      // Remove from SDarray
+      const sdIndex = SDarray.findIndex(p =>
+        p.stage === point.stage &&
+        p.discharge === point.discharge &&
+        p.isNew
+      );
+      if (sdIndex !== -1) SDarray.splice(sdIndex, 1);
+
+      // Remove from plotArray
+      const plIndex = plotArray.findIndex(p =>
+        p.Stage === point.stage &&
+        p.Discharge === point.discharge &&
+        p.Fitno === 9
+      );
+      if (plIndex !== -1) plotArray.splice(plIndex, 1);
+     
+      drawTable();
+      drawChart();
+      drawTable2();
+    Completetheplotline();
+    plottingnewpoints()
+    };
+    actionCell.appendChild(deleteBtn);
+    row.appendChild(actionCell);
+
+    tbody.appendChild(row);
+  });
+
+  tableContainer.style.display = 'block';
+
+}
+
+function scaleChart2ToSDandDataArray() {
+  if (!window.secondChartInstance || !Array.isArray(SDarray) || !Array.isArray(dataArray)) {
+    alert("Chart, SDarray, or dataArray is not ready.");
+    return;
+  }
+
+  const chart = window.secondChartInstance;
+
+  // Combine both arrays
+  const SDarryNew = [...SDarray];
+  const dataArrayNew = [...dataArray];
+  const combinedArray = [...SDarrayNew, ...dataArrayNew];
+
+  // Extract numeric discharge and stage values
+  const discharges = combinedArray.map(d => Number(d.discharge)).filter(n => !isNaN(n));
+  const stages = combinedArray.map(d => Number(d.stage)).filter(n => !isNaN(n));
+
+  if (discharges.length === 0 || stages.length === 0) {
+    alert("Combined array contains invalid discharge or stage data.");
+    return;
+  }
+
+  // Calculate min, max, and margins
+  const minX = Math.min(...discharges);
+  const maxX = Math.max(...discharges);
+  const minY = Math.min(...stages);
+  const maxY = Math.max(...stages);
+
+  const rangeX = maxX - minX || 1;
+  const rangeY = maxY - minY || 1;
+  const marginX = rangeX * 0.2;
+  const marginY = rangeY * 0.2;
+
+  // Apply to chart
+  chart.options.scales.x.min = minX - marginX;
+  chart.options.scales.x.max = maxX + marginX;
+  chart.options.scales.y.min = minY - marginY;
+  chart.options.scales.y.max = maxY + marginY;
+
+  chart.update();
+}
+
+function AddNewPoint(){
+Addpointflag = 1;
+document.getElementById('secondChart').style.cursor = 'crosshair';
+}
+
+function ClearAddNewPoint(){
+Addpointflag = 0;
+document.getElementById('secondChart').style.cursor = 'default';
+}
+
+function Zoomplus(){
+    chart2scalex = chart2scalex * 0.9;
+    chart2scaley = chart2scaley *0.9;
+scaleChart2ToSDarray(chart2scalex,chart2scaley);
+}
+
+function Zoomminus(){
+    chart2scalex = chart2scalex * 1.1;
+    chart2scaley = chart2scaley * 1.1;
+scaleChart2ToSDarray(chart2scalex,chart2scaley);
+}
+
+function resetZoom() {
+    chart2scalex = 1;
+    chart2scaley = 1;
+scaleChart2ToSDarray(chart2scalex,chart2scaley);
+  }
+
+  function  plottingnewpoints(){
+    if (window.secondChartInstance) {
+  // Remove existing 'SD Data' dataset
+  window.secondChartInstance.data.datasets = window.secondChartInstance.data.datasets.filter(d => d.label !== 'SD Data');
+
+  // Add new filtered 'SD Data' dataset
+  window.secondChartInstance.data.datasets.push({
+    label: 'SD Data',
+    data: SDarray
+      .filter(d => d.isNew === true)  // 👈 Filter for new points
+      .map(d => ({ x: d.discharge, y: d.stage })),
+    backgroundColor: 'Green',
+    showLine: false,
+    type: 'scatter',
+    order: 0,
+    pointRadius: 3,
+  });
+
+  // Update chart options for legend (if needed)
+  window.secondChartInstance.options.plugins.legend = {
+    labels: {
+      boxWidth: 4,
+      boxHeight: 4,
+      padding: 10,
+    }
+  };
+
+  window.secondChartInstance.update();
+}
+  }
 
 </script>
 
