@@ -1342,17 +1342,21 @@ scaleChart2ToSDarray(chart2scalex,chart2scaley);
   }
 
   function  plottingnewpoints(){
+
+   const filteredPoints = SDarray.filter(d => d.isNew === true); // Filter for new points
+     if (filteredPoints.length > 0) {
+
     if (window.secondChartInstance) {
   // Remove existing 'SD Data' dataset
-  window.secondChartInstance.data.datasets = window.secondChartInstance.data.datasets.filter(d => d.label !== 'SD Data');
+  window.secondChartInstance.data.datasets = window.secondChartInstance.data.datasets.filter(d => d.label !== 'New Points');
 
   // Add new filtered 'SD Data' dataset
   window.secondChartInstance.data.datasets.push({
-    label: 'SD Data',
+    label: 'New Points',
     data: SDarray
       .filter(d => d.isNew === true)  // 👈 Filter for new points
       .map(d => ({ x: d.discharge, y: d.stage })),
-    backgroundColor: 'Green',
+    backgroundColor: 'red',
     showLine: false,
     type: 'scatter',
     order: 0,
@@ -1360,16 +1364,55 @@ scaleChart2ToSDarray(chart2scalex,chart2scaley);
   });
 
   // Update chart options for legend (if needed)
+
+
+    
   window.secondChartInstance.options.plugins.legend = {
-    labels: {
+   labels: {
       boxWidth: 4,
       boxHeight: 4,
       padding: 10,
     }
   };
-
+  
   window.secondChartInstance.update();
-}
+};
+      
+  }
+  else{
+    const chart = window.secondChartInstance;
+    chart.data.datasets = chart.data.datasets.filter(ds => ds.label !== 'New Points');
+    chart.update();
+  }
+  };
+
+  function plottingnewpoints2(){
+     const newPoints = SDarray.filter(d => d.isNew === true);
+
+  // Reference to the chart object (e.g., Chart.js instance)
+  const chart = window.secondChartInstance;
+
+  // Remove the series if there are no new points
+  if (newPoints.length === 0) {
+    chart.data.datasets = chart.data.datasets.filter(ds => ds.label !== 'New Points');
+    chart.update();
+  } else {
+    // Otherwise, update or add the dataset
+    const newDataset = {
+      label: 'SD Data',
+      data: newPoints.map(d => ({ x: d.discharge, y: d.stage })),
+      backgroundColor: 'red',
+      showLine: false,
+      type: 'scatter',
+      order: 0,
+      pointRadius: 3,
+    };
+
+    // Remove old series if it exists
+ //   chart.data.datasets = chart.data.datasets.filter(ds => ds.label !== 'New Points');
+    chart.data.datasets.push(newDataset);
+    chart.update();
+  }
   }
 
 </script>
