@@ -508,6 +508,8 @@ function bestFitPower(data) {
   const sumX2 = data.reduce((sum, d) => sum + Math.log(d.stage) ** 2, 0);
   const b = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX ** 2);
   const a = Math.exp((sumY - b * sumX) / n);
+ // const tt  ="n = " + n + ", SumXY = " + sumXY + ", sumX = "+ sumX + ", sumY = " + sumY +", sumX2 = "+ sumX2 + ", a =" +a +", b ="+b ;
+ // alert(tt);
   return { a, b };
 }
 
@@ -828,8 +830,8 @@ function downloadChart() {
 
   // Export image from temp canvas
   const a = document.createElement('a');
-  a.href = tempCanvas.toDataURL('image/png', 1.0);
-  a.download = 'chart.png';
+  a.href = tempCanvas.toDataURL('image/jpeg', 1.0);
+  a.download = Filenamer+'_fit.jpeg';
   a.click();
 }
 
@@ -898,8 +900,8 @@ function downloadChart1() {
 
   // Create download link
   const a = document.createElement('a');
-  a.href = tempCanvas.toDataURL('image/png', 1.0);
-  a.download = 'secondChart.png';
+  a.href = tempCanvas.toDataURL('image/jpeg', 1.0);
+  a.download = Filenamer + '_SDcurve.jpeg';
   a.click();
 }
 
